@@ -1,0 +1,160 @@
+import hashlib
+import qrcode
+from PIL import ImageTk
+import tkinter as tk
+import os
+
+class URLManager:
+    url_map = {}
+
+    def shorten_url(self, long_url):
+        # Generate a short URL from the long URL
+        hash_object = hashlib.sha256(long_url.encode())
+        url_hex = hash_object.hexdigest()[:8]
+
+        # Store the short URL and long URL in a dictionary
+        self.url_map[url_hex] = long_url
+
+        return f"https://short.url/{url_hex}"
+    
+    def custom_shorten_url(self, long_url, custom_url):
+        # Store the short URL and long URL in the dictionary
+        self.url_map[custom_url] = long_url
+
+        return f"https://short.url/{custom_url}"
+    
+    def resolve_url(self, short_url):
+        # Retrieve the long URL from the dictionary
+        long_url = self.url_map.get(short_url)
+
+        if long_url is None:
+            return "URL not found"
+
+        return long_url
+
+    def display_qr_code(self, short_url):
+        if not short_url.startswith("https://short.url/"):
+            print("Invalid URL.")
+            return
+        
+        elif short_url.split("https://short.url/")[1] not in self.url_map:
+            print("URL not found. Please shorten the URL first.")
+            return
+
+        # Generate a QR code for the short URL
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(short_url)
+        qr.make(fit=True)
+
+        qr_image = qr.make_image(fill_color="black", back_color="white")
+
+        # Create a popup window
+        popup = tk.Tk()
+        popup.title("QR Code")
+        popup.attributes('-topmost', True)
+
+        # Convert PIL image to Tkinter PhotoImage
+        tk_image = ImageTk.PhotoImage(qr_image)
+        label = tk.Label(popup, image=tk_image)
+        label.image = tk_image  # Keep a reference to avoid garbage collection
+        label.pack(padx=10, pady=10)
+
+        label.mainloop()
+
+    def remove_url(self, short_url):
+        if not short_url.startswith("https://short.url/"):
+            return "Invalid URL."
+        elif short_url.split("https://short.url/")[1] not in self.url_map:
+            return "URL not found. Please shorten the URL first."
+
+        del self.url_map[short_url.split("https://short.url/")[1]]
+
+        return "URL removed."
+    
+    def display_all_urls(self):
+        if len(self.url_map) == 0:
+            print("No URLs saved.")
+            return
+        
+        for url_hex, url in self.url_map.items():
+            print(f"{url_hex}: {url}")
+
+def display_menu():
+    print("\n---------- Link Manager ----------\n")
+    print("1. Shorten a URL")
+    print("2. Resolve a shortened URL")
+    print("3. Display QR code for a URL")
+    print("4. Remove a URL")
+    print("5. Display all saved URLs")
+    print("6. Exit")
+    print("\n-----------------------------------\n")
+
+    choice = input("Enter your choice number: ")
+
+    print() # Print a blank line
+
+    return choice
+
+def main():
+    url_manager = URLManager()
+
+    while True:
+        # Clear the screen before next loop iteration
+        os.system("cls")
+
+        choice = display_menu()
+
+        if choice == "1":
+            print("1. Generate a random 8-character URL")
+            print("2. Enter a custom URL\n")
+
+            choice = input("Enter a number: ")
+
+            if choice == "1":
+                long_url = input("Enter a long URL: ")
+                short_url = url_manager.shorten_url(long_url)
+                print(f"Short URL: {short_url}")
+                input("\nPress Enter to continue...")
+
+            elif choice == "2":
+                long_url = input("Enter a long URL: ")
+                custom_url = input("Enter a custom URL: ")
+                short_url = url_manager.custom_shorten_url(long_url, custom_url)
+                print(f"Short URL: {short_url}")
+                input("\nPress Enter to continue...")
+
+            else:
+                print("Invalid choice.")
+                input("\nPress Enter to continue...")
+
+        elif choice == "2":
+            short_url = input("Enter a shortened URL: ")
+            long_url = url_manager.resolve_url(short_url)
+            print(f"Long URL: {long_url}")
+            input("\nPress Enter to continue...")
+
+        elif choice == "3":
+            short_url = input("Enter a shortened URL: ")
+            url_manager.display_qr_code(short_url)
+
+        elif choice == "4":
+            short_url = input("Enter a shortened URL: ")
+            message = url_manager.remove_url(short_url)
+            print(message)
+            input("\nPress Enter to continue...")
+
+        elif choice == "5":
+            url_manager.display_all_urls()
+            input("\nPress Enter to continue...")
+
+        elif choice == "6":
+            print("Exiting...\n")
+            break
+
+# Execute the program
+main()
